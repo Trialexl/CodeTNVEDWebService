@@ -1,0 +1,10 @@
+Flask==2.3.2
+numpy==1.24.3
+pandas==2.0.1
+requests==2.29.0
+torch==2.0.0
+tornado==6.3.1
+tqdm==4.65.0
+traitlets==5.9.0
+transformers==4.28.1
+scikit-learn==1.1.3
