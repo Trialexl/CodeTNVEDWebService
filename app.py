@@ -6,7 +6,7 @@ from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassific
 from sklearn import preprocessing
 import urllib.parse
 import requests
-from config import OuterService
+from config import OutsideService
 
 
 
@@ -26,6 +26,9 @@ model_10d.load_state_dict(torch.load("pytorch_model10d.bin", map_location=device
 
 app = Flask(__name__)
 dscr = pd.read_csv("codetnved/data/desc.csv", sep=';', names=['id', 'label'])
+dscr_10d = pd.read_csv("../data/descr10d.csv", sep=';', names=['id', 'label', 'till'], dtype={'id': str, 'label': str, 'till': str})
+dscr_10d['valid'] = dscr_10d['till'].isna()
+
 
 def predict_prob(text, qtty=2):
     model.to(torch.device('cpu'))
@@ -47,6 +50,25 @@ def predict_prob_with_descr(text, qtty=5):
         result.append([each, dscr[dscr['id']==each].iloc[0]['label'], probs[each]])
     return result
 
+def predict_prob_10d(text, qtty=2):
+    model_10d.to(torch.device('cpu'))
+    inputs = tokenizer(text, truncation = True, max_length=100, padding='max_length', return_tensors="pt")
+    with torch.no_grad():
+        logits = model_10d(**inputs).logits
+    result = dict()
+    p = torch.nn.functional.softmax(logits, dim=1)
+    for i in range(qtty):
+        a = p.argmax().item()
+        result[Label_encoder_10d.inverse_transform([a])[0]] = p[0][a].item()
+        p[0][a] = 0
+    return result
+def predict_prob_with_descr_10d(text, qtty=5):
+    probs = predict_prob_10d(text, qtty=qtty)
+    #result = np.array()
+    result = list()
+    for each in probs:
+        result.append([each, dscr[dscr['id']==each].iloc[0]['label'], probs[each], dscr[dscr['id']==each].iloc[0]['valid']])
+    return result
 
 def getCodeOuterService(text):
     text = urllib.parse.quote(text)
@@ -78,8 +100,12 @@ def GetCode():
     data = request.get_json()
     if 'text' not in data:
         return jsonify({'code': 'Не был передан необходимый параметр'})
-    return jsonify({'code': 'Не реализовано'})
-
+    if 'qty' not in data:
+        codes = predict_prob_with_descr_10d(data['text'])
+    else:
+        codes = predict_prob_with_descr_10d(data['text'], data['qty'])
+    CodeOuterService = getCodeOuterService(data['text'])
+    return jsonify({'Our':codes , 'OuterService':CodeOuterService})
 
 if __name__ == '__main__':
    app.run(debug=False)
