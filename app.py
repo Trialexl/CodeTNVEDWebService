@@ -25,8 +25,8 @@ Label_encoder_10d.classes_ = np.load('codetnved/src/cl_classes1307.npy', allow_p
 model_10d.load_state_dict(torch.load("pytorch_model10d.bin", map_location=device))
 
 app = Flask(__name__)
-dscr = pd.read_csv("codetnved/data/desc.csv", sep=';', names=['id', 'label'])
-dscr_10d = pd.read_csv("../data/descr10d.csv", sep=';', names=['id', 'label', 'till'], dtype={'id': str, 'label': str, 'till': str})
+dscr = pd.read_csv("codetnved/data/desc4d.csv", sep=';', names=['id', 'label'])
+dscr_10d = pd.read_csv("codetnved/data/descr10d.csv", sep=';', names=['id', 'label', 'till'], dtype={'id': str, 'label': str, 'till': str})
 dscr_10d['valid'] = dscr_10d['till'].isna()
 
 
@@ -55,20 +55,19 @@ def predict_prob_10d(text, qtty=2):
     inputs = tokenizer(text, truncation = True, max_length=100, padding='max_length', return_tensors="pt")
     with torch.no_grad():
         logits = model_10d(**inputs).logits
-    result = dict()
+    result = []
     p = torch.nn.functional.softmax(logits, dim=1)
     for i in range(qtty):
         a = p.argmax().item()
-        result[Label_encoder_10d.inverse_transform([a])[0]] = p[0][a].item()
+        result.append([Label_encoder_10d.inverse_transform([a])[0] , p[0][a].item()])
         p[0][a] = 0
     return result
+
 def predict_prob_with_descr_10d(text, qtty=5):
     probs = predict_prob_10d(text, qtty=qtty)
-    #result = np.array()
-    result = list()
-    for each in probs:
-        result.append([each, dscr[dscr['id']==each].iloc[0]['label'], probs[each], dscr[dscr['id']==each].iloc[0]['valid']])
-    return result
+    df3 = pd.DataFrame(probs,columns=['id', 'Probability'])
+    df3= df3.merge(descr10d, how='left')    
+    return df3.to_dict()
 
 def getCodeOuterService(text):
     text = urllib.parse.quote(text)
@@ -104,7 +103,9 @@ def GetCode():
         codes = predict_prob_with_descr_10d(data['text'])
     else:
         codes = predict_prob_with_descr_10d(data['text'], data['qty'])
+    
     CodeOuterService = getCodeOuterService(data['text'])
+    
     return jsonify({'Our':codes , 'OuterService':CodeOuterService})
 
 if __name__ == '__main__':
