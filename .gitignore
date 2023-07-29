@@ -36,6 +36,7 @@
 ehthumbs.db
 Thumbs.db
 # configs
-config.py 
+config.py
 codetnved/
 *.bin
+__pycache__/

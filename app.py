@@ -16,17 +16,17 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=660).to(device)
 Label_encoder = preprocessing.LabelEncoder()
-Label_encoder.classes_ = np.load('codetnved/src/cl_classes2306.npy', allow_pickle=True)
-model.load_state_dict(torch.load("pytorch_model.bin", map_location=device))
+Label_encoder.classes_ = np.load('../codetnved/src/cl_classes2306.npy', allow_pickle=True)
+model.load_state_dict(torch.load("../pytorch_model.bin", map_location=device))
 
 model_10d = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2648).to(device)
 Label_encoder_10d = preprocessing.LabelEncoder()
-Label_encoder_10d.classes_ = np.load('codetnved/src/cl_classes1307.npy', allow_pickle=True)
-model_10d.load_state_dict(torch.load("pytorch_model10d.bin", map_location=device))
+Label_encoder_10d.classes_ = np.load('../codetnved/src/cl_classes1307.npy', allow_pickle=True)
+model_10d.load_state_dict(torch.load("../pytorch_model10d.bin", map_location=device))
 
 app = Flask(__name__)
-dscr = pd.read_csv("codetnved/data/desc4d.csv", sep=';', names=['id', 'label'])
-dscr_10d = pd.read_csv("codetnved/data/descr10d.csv", sep=';', names=['id', 'label', 'till'], dtype={'id': str, 'label': str, 'till': str})
+dscr = pd.read_csv("../codetnved/data/desc4d.csv", sep=';', names=['id', 'label'])
+dscr_10d = pd.read_csv("../codetnved/data/descr10d.csv", sep=';', names=['id', 'label', 'till'], dtype={'id': str, 'label': str, 'till': str})
 dscr_10d['valid'] = dscr_10d['till'].isna()
 
 
@@ -66,8 +66,8 @@ def predict_prob_10d(text, qtty=2):
 def predict_prob_with_descr_10d(text, qtty=5):
     probs = predict_prob_10d(text, qtty=qtty)
     df3 = pd.DataFrame(probs,columns=['id', 'Probability'])
-    df3= df3.merge(descr10d, how='left')    
-    return df3.to_dict()
+    df3= df3.merge(dscr_10d, how='left')    
+    return df3.to_dict('records')
 
 def getCodeOuterService(text):
     text = urllib.parse.quote(text)
