@@ -13,7 +13,9 @@ from sklearn import preprocessing
 import urllib.parse
 import requests
 from requests.auth import HTTPBasicAuth
+import json
 from config import OutsideService, url1cHTTPService, user1c, pwd1c
+
 
 
 device = torch.device("cpu")
@@ -92,7 +94,7 @@ def predict_prob_with_descr_10d(text, qtty=5):
     probs = predict_prob_10d(text, qtty=qtty)
     df3 = pd.DataFrame(probs, columns=["id", "Probability"])
     df3 = df3.merge(dscr_10d, how="left")
-    df3.fillna("")
+    df3 = df3.fillna("")
     return df3.to_dict("records")
 
 
@@ -110,7 +112,7 @@ def FixDataIn1c(answer):
     headers = {"Content-Type": "application/json"}
 
     response = requests.request(
-        "POST", url1cHTTPService, headers=headers, data=answer, auth=basic
+        "POST", url1cHTTPService, headers=headers, data=json.dumps(answer), auth=basic
     )
 
 
@@ -141,17 +143,15 @@ def GetCode():
 
     CodeOuterService = getCodeOuterService(data["text"])
 
-    answer = jsonify(
-        {
-            "QueryText": data["text"],
-            "Our": codes,
-            "Ourgroups": groups,
-            "OuterService": CodeOuterService,
-        }
-    )
-    FixDataIn1c(answer)
-    return answer
+    answer = {
+        "QueryText": data["text"],
+        "Our": codes,
+        "Ourgroups": groups,
+        "OuterService": CodeOuterService,
+    }
 
+    FixDataIn1c(answer)
+    return jsonify(answer)
 
 
 if __name__ == "__main__":
