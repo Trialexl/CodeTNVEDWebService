@@ -40,3 +40,4 @@ config.py
 codetnved/
 *.bin
 __pycache__/
+.vscode
